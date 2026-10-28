@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
-  Bookmark, Calendar, DollarSign, Users, Trash2, 
-  ExternalLink, Sparkles, MapPin, Compass, AlertCircle 
+  Bookmark, Calendar, Users, Trash2, 
+  ExternalLink, Sparkles, MapPin 
 } from 'lucide-react';
 
 export default function SavedTrips({ 

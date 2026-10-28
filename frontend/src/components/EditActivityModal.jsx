@@ -12,25 +12,13 @@ export default function EditActivityModal({
 }) {
   const dialogRef = useRef(null);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
-  const [suggestedTransportation, setSuggestedTransportation] = useState('');
-  const [estimatedCost, setEstimatedCost] = useState(0);
-  const [durationHours, setDurationHours] = useState(2);
-  const [category, setCategory] = useState('sightseeing');
-
-  useEffect(() => {
-    if (activity) {
-      setTitle(activity.title || '');
-      setDescription(activity.description || '');
-      setLocation(activity.location || '');
-      setSuggestedTransportation(activity.suggested_transportation || '');
-      setEstimatedCost(activity.estimated_cost || 0);
-      setDurationHours(activity.duration_hours || 2);
-      setCategory(activity.category || 'sightseeing');
-    }
-  }, [activity]);
+  const [title, setTitle] = useState(activity?.title || '');
+  const [description, setDescription] = useState(activity?.description || '');
+  const [location, setLocation] = useState(activity?.location || '');
+  const [suggestedTransportation, setSuggestedTransportation] = useState(activity?.suggested_transportation || '');
+  const [estimatedCost, setEstimatedCost] = useState(activity?.estimated_cost || 0);
+  const [durationHours, setDurationHours] = useState(activity?.duration_hours || 2);
+  const [category, setCategory] = useState(activity?.category || 'sightseeing');
 
   useEffect(() => {
     const dialog = dialogRef.current;

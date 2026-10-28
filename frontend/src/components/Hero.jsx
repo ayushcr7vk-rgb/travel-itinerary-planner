@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, MapPin, DollarSign, Calendar, HeartHandshake, Compass } from 'lucide-react';
+import { Sparkles, MapPin, DollarSign, Calendar, HeartHandshake } from 'lucide-react';
 
 export default function Hero({ onSelectPreset, onScrollToForm }) {
   const popularDestinations = [

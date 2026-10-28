@@ -41,16 +41,7 @@ export default function App() {
   const [editingActivityData, setEditingActivityData] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // Load health and saved trips on initial mount
-  useEffect(() => {
-    loadHealth();
-    loadSavedTrips();
-  }, []);
-
-  const showToast = (message, type = 'info') => {
-    setToast({ message, type });
-  };
-
+  // Load health and saved trips
   const loadHealth = async () => {
     try {
       const data = await fetchHealth();
@@ -68,6 +59,11 @@ export default function App() {
       console.warn('Could not load saved trips:', err.message);
     }
   };
+
+  useEffect(() => {
+    loadHealth();
+    loadSavedTrips();
+  }, []);
 
   // Preset click from Hero
   const handleSelectPreset = (destName) => {
@@ -401,6 +397,7 @@ export default function App() {
       {/* Edit Activity Modal */}
       {editingActivityData && (
         <EditActivityModal
+          key={`${editingActivityData.dayNumber}-${editingActivityData.activityIndex}`}
           isOpen={Boolean(editingActivityData)}
           onClose={() => setEditingActivityData(null)}
           dayNumber={editingActivityData.dayNumber}

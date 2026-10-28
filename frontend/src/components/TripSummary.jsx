@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Bookmark, RefreshCw, Printer, Share2, DollarSign, 
-  Calendar, Users, Compass, Check, AlertCircle, Info, Lightbulb 
+  Calendar, Users, Compass, Check, Info, Lightbulb 
 } from 'lucide-react';
 
 export default function TripSummary({ 

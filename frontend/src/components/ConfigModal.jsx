@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { X, Sparkles, Database, CheckCircle2, AlertCircle, Copy, ExternalLink, Code } from 'lucide-react';
+import { X, Sparkles, Database, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 
 export default function ConfigModal({ isOpen, onClose, health }) {
   const dialogRef = useRef(null);

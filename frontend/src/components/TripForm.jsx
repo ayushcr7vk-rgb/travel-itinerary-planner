@@ -48,10 +48,28 @@ const ACCESSIBILITY_OPTIONS = [
   'Elevator & Ramp Priority'
 ];
 
+const LOADING_PHRASES = [
+  'Consulting destination geography & transit grids...',
+  'Curating morning, afternoon & evening highlights...',
+  'Balancing authentic local dining with your budget...',
+  'Verifying route sequencing to avoid backtrack fatigue...',
+  'Finalizing your personalized day-by-day itinerary...'
+];
+
+function getDefaultDates() {
+  const now = new Date();
+  now.setDate(now.getDate() + 7);
+  const s = now.toISOString().split('T')[0];
+  const later = new Date(now);
+  later.setDate(later.getDate() + 3);
+  const e = later.toISOString().split('T')[0];
+  return { start: s, end: e };
+}
+
 export default function TripForm({ initialValues, onSubmit, isLoading }) {
   const [destination, setDestination] = useState(initialValues?.destination || 'Tokyo, Japan');
-  const [startDate, setStartDate] = useState(initialValues?.startDate || '');
-  const [endDate, setEndDate] = useState(initialValues?.endDate || '');
+  const [startDate, setStartDate] = useState(() => initialValues?.startDate || getDefaultDates().start);
+  const [endDate, setEndDate] = useState(() => initialValues?.endDate || getDefaultDates().end);
   const [budget, setBudget] = useState(initialValues?.budget || 1800);
   const [currency, setCurrency] = useState(initialValues?.currency || 'USD');
   const [travelers, setTravelers] = useState(initialValues?.travelers || 2);
@@ -65,41 +83,18 @@ export default function TripForm({ initialValues, onSubmit, isLoading }) {
   const [errors, setErrors] = useState({});
   const [loadingTextIndex, setLoadingTextIndex] = useState(0);
 
-  const loadingPhrases = [
-    'Consulting destination geography & transit grids...',
-    'Curating morning, afternoon & evening highlights...',
-    'Balancing authentic local dining with your budget...',
-    'Verifying route sequencing to avoid backtrack fatigue...',
-    'Finalizing your personalized day-by-day itinerary...'
-  ];
-
-  // Set default sensible dates (e.g. 1 week from now, for 4 days) if empty
-  useEffect(() => {
-    if (!startDate) {
-      const now = new Date();
-      now.setDate(now.getDate() + 7);
-      const s = now.toISOString().split('T')[0];
-      setStartDate(s);
-      
-      const later = new Date(now);
-      later.setDate(later.getDate() + 3);
-      const e = later.toISOString().split('T')[0];
-      setEndDate(e);
-    }
-  }, []);
-
-  // Update when initialValues change from external presets
+  // Sync external preset destination changes
   useEffect(() => {
     if (initialValues?.destination) {
       setDestination(initialValues.destination);
     }
-  }, [initialValues]);
+  }, [initialValues?.destination]);
 
   // Loading text rotation
   useEffect(() => {
     if (!isLoading) return;
     const interval = setInterval(() => {
-      setLoadingTextIndex(prev => (prev + 1) % loadingPhrases.length);
+      setLoadingTextIndex(prev => (prev + 1) % LOADING_PHRASES.length);
     }, 2400);
     return () => clearInterval(interval);
   }, [isLoading]);
@@ -464,7 +459,7 @@ export default function TripForm({ initialValues, onSubmit, isLoading }) {
             {isLoading ? (
               <div className="loading-content">
                 <span className="spinner" />
-                <span className="loading-phrase">{loadingPhrases[loadingTextIndex]}</span>
+                <span className="loading-phrase">{LOADING_PHRASES[loadingTextIndex]}</span>
               </div>
             ) : (
               <div className="btn-content">
