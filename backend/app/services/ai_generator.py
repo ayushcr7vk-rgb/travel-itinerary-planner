@@ -430,7 +430,7 @@ def _generate_demo_itinerary(preferences: TripPreferences) -> GeneratedItinerary
 async def generate_itinerary(preferences: TripPreferences) -> GeneratedItinerary:
     """
     Main itinerary generation entry point.
-    If GEMINI_API_KEY is configured, calls Google GenAI SDK (gemini-3.8-flash).
+    If GEMINI_API_KEY is configured, calls Google GenAI SDK with automatic model failover.
     Otherwise returns authentic Demo Mode output.
     """
     if not settings.is_ai_active:
@@ -442,7 +442,6 @@ async def generate_itinerary(preferences: TripPreferences) -> GeneratedItinerary
         from google import genai
         from google.genai import types
 
-        logger.info(f"Generating live itinerary via Gemini API (model: {settings.GEMINI_MODEL})")
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
         prompt = f"""
@@ -474,48 +473,70 @@ IMPORTANT RULES:
 5. Return ONLY a valid JSON object matching the requested schema. No markdown formatting or extra commentary.
 """
 
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_json_schema=GeneratedItinerary.model_json_schema(),
-                temperature=0.7
-            )
-        )
+        candidate_models = [
+            settings.GEMINI_MODEL,
+            "gemini-3-flash-preview",
+            "gemini-3.8-flash",
+            "gemini-3.1-flash-lite-preview",
+            "gemini-flash-latest"
+        ]
+        unique_models = []
+        for m in candidate_models:
+            if m and m not in unique_models:
+                unique_models.append(m)
 
-        raw_json = response.text
-        parsed_data = json.loads(raw_json)
+        last_error = None
+        for model_name in unique_models:
+            try:
+                logger.info(f"Generating live itinerary via Gemini API ({model_name})")
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_json_schema=GeneratedItinerary.model_json_schema(),
+                        temperature=0.7
+                    )
+                )
 
-        # Ensure model and is_demo metadata are correctly set
-        parsed_data["is_demo"] = False
-        parsed_data["ai_model"] = settings.GEMINI_MODEL
-        parsed_data["disclaimer"] = "AI-generated personalized itinerary based on Gemini. Estimated costs and schedules are recommendations; verify live booking details before departure."
+                raw_json = response.text
+                parsed_data = json.loads(raw_json)
 
-        # Re-verify and compute summary metrics cleanly
-        itinerary = GeneratedItinerary.model_validate(parsed_data)
+                # Ensure model and is_demo metadata are correctly set
+                parsed_data["is_demo"] = False
+                parsed_data["ai_model"] = f"Google Gemini ({model_name})"
+                parsed_data["disclaimer"] = f"AI-generated personalized itinerary powered live by Google Gemini ({model_name}). Verify live operating hours and reservations before departure."
 
-        # Recalculate financial summary to ensure 100% mathematical precision
-        total_cost = sum(day.daily_estimated_cost for day in itinerary.days)
-        rem_budget = preferences.budget - total_cost
-        if rem_budget >= 0.15 * preferences.budget:
-            status = "Under budget"
-        elif rem_budget >= 0:
-            status = "Within budget"
-        else:
-            status = "Budget stretched"
+                # Re-verify and compute summary metrics cleanly
+                itinerary = GeneratedItinerary.model_validate(parsed_data)
 
-        itinerary.trip_summary.destination = preferences.destination
-        itinerary.trip_summary.total_days = preferences.total_days
-        itinerary.trip_summary.travelers = preferences.travelers
-        itinerary.trip_summary.travel_style = preferences.travel_style
-        itinerary.trip_summary.budget = preferences.budget
-        itinerary.trip_summary.currency = preferences.currency
-        itinerary.trip_summary.total_estimated_cost = round(total_cost, 2)
-        itinerary.trip_summary.remaining_budget = round(rem_budget, 2)
-        itinerary.trip_summary.budget_status = status
+                # Recalculate financial summary to ensure 100% mathematical precision
+                total_cost = sum(day.daily_estimated_cost for day in itinerary.days)
+                rem_budget = preferences.budget - total_cost
+                if rem_budget >= 0.15 * preferences.budget:
+                    status = "Under budget"
+                elif rem_budget >= 0:
+                    status = "Within budget"
+                else:
+                    status = "Budget stretched"
 
-        return itinerary
+                itinerary.trip_summary.destination = preferences.destination
+                itinerary.trip_summary.total_days = preferences.total_days
+                itinerary.trip_summary.travelers = preferences.travelers
+                itinerary.trip_summary.travel_style = preferences.travel_style
+                itinerary.trip_summary.budget = preferences.budget
+                itinerary.trip_summary.currency = preferences.currency
+                itinerary.trip_summary.total_estimated_cost = round(total_cost, 2)
+                itinerary.trip_summary.remaining_budget = round(rem_budget, 2)
+                itinerary.trip_summary.budget_status = status
+
+                logger.info(f"Successfully generated live itinerary via {model_name}")
+                return itinerary
+            except Exception as m_err:
+                logger.warning(f"Gemini model {model_name} failed: {m_err}. Trying fallback model...")
+                last_error = m_err
+
+        raise last_error or Exception("All Gemini models were unavailable.")
 
     except Exception as exc:
         logger.error(f"Error calling Gemini API: {exc}. Falling back to safe Demo Mode generator.")
@@ -557,17 +578,33 @@ Return a single DayItinerary JSON object with:
 - daily_estimated_cost: total estimated cost in {currency}
 - daily_notes: practical note
 """
-            response = client.models.generate_content(
-                model=settings.GEMINI_MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_json_schema=DayItinerary.model_json_schema(),
-                    temperature=0.85
-                )
-            )
-            data = json.loads(response.text)
-            return DayItinerary.model_validate(data)
+            candidate_models = [
+                settings.GEMINI_MODEL,
+                "gemini-3-flash-preview",
+                "gemini-3.8-flash",
+                "gemini-3.1-flash-lite-preview",
+                "gemini-flash-latest"
+            ]
+            unique_models = []
+            for m in candidate_models:
+                if m and m not in unique_models:
+                    unique_models.append(m)
+
+            for model_name in unique_models:
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            response_json_schema=DayItinerary.model_json_schema(),
+                            temperature=0.85
+                        )
+                    )
+                    data = json.loads(response.text)
+                    return DayItinerary.model_validate(data)
+                except Exception as m_err:
+                    logger.warning(f"Regenerate day with {model_name} failed: {m_err}. Trying fallback...")
         except Exception as e:
             logger.warning(f"Live regenerate day failed: {e}. Using variation logic.")
 
